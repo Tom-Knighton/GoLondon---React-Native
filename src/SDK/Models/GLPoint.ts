@@ -12,7 +12,7 @@ enum PointType {
 }
 
 class StopPoint implements GLPoint {
-    constructor(public lat: number, public lon: number, public pointType: PointType, public name?: String, public commonName?: String, public stopLetter?: String) {}
+    constructor(public lat: number, public lon: number, public pointType: PointType, public name?: String, public commonName?: String, public stopLetter?: String, public rand?: Boolean) {}
 }
 
 class POIPoint implements GLPoint {

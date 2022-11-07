@@ -49,7 +49,6 @@ const App = () => {
     <PaperProvider>
       <StatusBar
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor='transparent'
           translucent
         />
         <View style={styles.page}>
