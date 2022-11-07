@@ -26,7 +26,7 @@ let GLSDK: IGLSDK = {
             resp.data.forEach(element => {
                 if (element.pointType == PointType.StopPoint) {
                     const e = element as StopPoint;
-                    data.push(new StopPoint(e.lat, e.lon, e.pointType, e.name, e.commonName, e.stopLetter, Math.random() > 0.5));
+                    data.push(new StopPoint(e.lat, e.lon, e.pointType, e.icsId, e.icsCode, e.zone, e.id, e.naptanId, e.name, e.commonName, e.indicator, e.stopLetter, e.hubNaptanCode, e.modes, e.lineModes, e.quietTimeData, e.lineGroup, e.lineModeGroups, e.additionalProperties, e.children, e.properties, e.childStationIds));
                 } else if (element.pointType == PointType.POIPoint) {
                     const e = element as POIPoint;
                     data.push(new POIPoint(e.lat, e.lon, e.pointType, e.text, e.place_name));

@@ -3,11 +3,24 @@ import {StopPoint} from '../../SDK/Models/GLPoint';
 import {Stack, HStack, VStack} from 'react-native-flex-layout';
 import {MarkerView, PointAnnotation} from '@rnmapbox/maps';
 import {Text} from 'react-native-paper';
+import { LineMode } from '../../SDK/Models/Imported';
 interface StopPointMarkerProps {
   stopPoint: StopPoint;
 }
 
 const StopPointMarker = ({stopPoint}: StopPointMarkerProps) => {
+  function isBusOnly(): Boolean {
+    return stopPoint.lineModeGroups?.length == 1 && stopPoint.lineModeGroups[0].modeName == LineMode.Bus
+  }
+
+  function isBusStand(): Boolean {
+    return stopPoint.lineModeGroups?.length == 0 && stopPoint.indicator?.startsWith("Stand") == true;
+  }
+
+  function isBus(): Boolean {
+    return isBusOnly() || isBusStand();
+  }
+
   return (
     <>
       <PointAnnotation
@@ -27,22 +40,22 @@ const StopPointMarker = ({stopPoint}: StopPointMarkerProps) => {
               width: 30,
               height: 30,
               borderRadius: 30 / 2,
-              backgroundColor: `${stopPoint.rand ? '#EE2E24' : 'white'}`,
-              padding: 2.5
+              backgroundColor: `${isBus() ? '#EE2E24' : 'white'}`,
+              padding: isBus() ? 0 : 2.5,
             }}>
-            {stopPoint.rand && (
+            {isBus() && (
               <Text
                 style={{
-                  width: 25,
-                  height: 25,
+                  width: 30,
+                  height: 30,
                   textAlign: 'center',
-                  lineHeight: 25,
+                  lineHeight: 30,
                   fontWeight: 'bold',
                 }}>
-                {stopPoint.stopLetter ?? ':)'}
+                {stopPoint.stopLetter}
               </Text>
             )}
-            {!stopPoint.rand && (
+            {!isBus() && (
               <Image
                 source={require('../../assets/img/tfl.png')}
                 style={{
