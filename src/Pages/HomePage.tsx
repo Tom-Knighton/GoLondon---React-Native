@@ -1,14 +1,11 @@
-import MapboxGL, {
-  Camera,
-  LineLayer,
-  ShapeSource,
-} from '@rnmapbox/maps';
+import MapboxGL, {Camera, LineLayer, ShapeSource} from '@rnmapbox/maps';
 import {useEffect, useState} from 'react';
 import {StyleSheet, useColorScheme, View} from 'react-native';
 import GLSDK from '../SDK/APIClient';
 import {StopPoint} from '../SDK/Models/GLPoint';
-import {StopPointMarker } from '../Views/Markers/StopPointMarker';
+import {StopPointMarker} from '../Views/Markers/StopPointMarker';
 import * as turf from '@turf/turf';
+import {Surface, FAB, Button} from 'react-native-paper';
 
 const HomePage = () => {
   const isDarkMode = useColorScheme() === 'dark';
@@ -66,33 +63,17 @@ const HomePage = () => {
           ))}
         </>
       </MapboxGL.MapView>
+
+      <>
+        <FAB style={{position: 'absolute', right: 8, top: 40, borderRadius: 32}} icon="train" mode='elevated' onPress={() => {}} variant='surface'/>
+        <FAB style={{position: 'absolute', right: 8, top: 110, borderRadius: 32}} icon="filter-variant" mode='elevated' onPress={() => {}} variant='surface'/>
+        <FAB style={{position: 'absolute', right: 8, top: 180, borderRadius: 32}} icon="crosshairs-gps" mode='elevated' onPress={() => {}} variant='surface'/>
+      </>
     </>
   );
 };
 
 export {HomePage};
-
-function pointsShape(points: StopPoint[]): GeoJSON.FeatureCollection {
-  let feats: GeoJSON.Feature[] = [];
-
-  points.forEach(point => {
-    feats.push({
-      type: 'Feature',
-      properties: {
-        icon: `file:///data/user/0/com.golondonrn/cache/${point.id}.jpg`,
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [point.lon, point.lat],
-      },
-    });
-  });
-
-  return {
-    type: 'FeatureCollection',
-    features: feats,
-  };
-}
 
 function getCircleExp(): GeoJSON.Feature {
   var point = turf.point([0.183265, 51.57483]);
