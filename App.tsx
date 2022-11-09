@@ -10,7 +10,7 @@
 
 import MapboxGL, {Camera, MarkerView, PointAnnotation} from '@rnmapbox/maps';
 import React, {useEffect, useState, type PropsWithChildren} from 'react';
-import { Provider as PaperProvider } from 'react-native-paper';
+import {Provider as PaperProvider} from 'react-native-paper';
 import {
   Pressable,
   SafeAreaView,
@@ -29,8 +29,10 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
-import {POIPoint, StopPoint} from './src/SDK/Models/GLPoint';
-import { HomePage } from './src/Pages/HomePage';
+import {HomePage} from './src/Pages/HomePage';
+import {useSafeAreaInsets, SafeAreaProvider} from 'react-native-safe-area-context';
+import {Appbar, FAB, useTheme} from 'react-native-paper';
+import Roundel from './src/assets/img/svg/Roundel';
 
 MapboxGL.setAccessToken(
   'pk.eyJ1IjoidG9ta25pZ2h0b24iLCJhIjoiY2p0ZWhyb2s2MTR1NzN5bzdtZm9udmJueSJ9.c4dShyMCfZ6JhsnFRf72Rg',
@@ -44,19 +46,24 @@ const App = () => {
     flex: 1,
   };
 
-
   return (
     <PaperProvider>
-      <StatusBar
+       <StatusBar
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor='transparent'
+          backgroundColor="transparent"
           translucent
         />
         <View style={styles.page}>
           <View style={styles.container}>
-            <HomePage/>
+            <HomePage />
+
+
           </View>
         </View>
+
+        {/* <Appbar>
+          <Appbar.Action icon="archive"></Appbar.Action>
+        </Appbar> */}
     </PaperProvider>
   );
 };
