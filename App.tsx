@@ -30,9 +30,13 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 import {HomePage} from './src/Pages/HomePage';
-import {useSafeAreaInsets, SafeAreaProvider} from 'react-native-safe-area-context';
-import {Appbar, FAB, useTheme} from 'react-native-paper';
+import {
+  useSafeAreaInsets,
+  SafeAreaProvider,
+} from 'react-native-safe-area-context';
+import {Appbar, BottomNavigation, FAB, useTheme} from 'react-native-paper';
 import Roundel from './src/assets/img/svg/Roundel';
+import LinesPage from './src/Pages/LinesPage';
 
 MapboxGL.setAccessToken(
   'pk.eyJ1IjoidG9ta25pZ2h0b24iLCJhIjoiY2p0ZWhyb2s2MTR1NzN5bzdtZm9udmJueSJ9.c4dShyMCfZ6JhsnFRf72Rg',
@@ -46,24 +50,45 @@ const App = () => {
     flex: 1,
   };
 
+  const [index, setIndex] = React.useState(0);
+  const [routes] = React.useState([
+    {
+      key: 'home',
+      title: 'Map',
+      focusedIcon: 'map',
+      unfocusedIcon: 'map-outline',
+    },
+    {
+      key: 'lines',
+      title: 'Lines',
+      focusedIcon: 'train',
+      unfocusedIcon: 'train',
+    },
+  ]);
+
+  const renderScene = BottomNavigation.SceneMap({
+    home: HomePage,
+    lines: LinesPage,
+  });
+
   return (
     <PaperProvider>
-       <StatusBar
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor="transparent"
-          translucent
-        />
-        <View style={styles.page}>
-          <View style={styles.container}>
-            <HomePage />
-
-
-          </View>
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
+      <View style={styles.page}>
+        <View style={styles.container}>
+          <BottomNavigation
+            compact={true}
+            barStyle={{borderRadius: 25}}
+            navigationState={{index, routes}}
+            renderScene={renderScene}
+            onIndexChange={setIndex}
+          />
         </View>
-
-        {/* <Appbar>
-          <Appbar.Action icon="archive"></Appbar.Action>
-        </Appbar> */}
+      </View>
     </PaperProvider>
   );
 };
