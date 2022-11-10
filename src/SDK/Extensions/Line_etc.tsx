@@ -1,4 +1,6 @@
 import {LineMode} from '../Models/Imported';
+import NationalRailSvg from '../../assets/img/svg/NationalRail';
+import Roundel from '../../assets/img/svg/Roundel';
 
 function LineModeColourHex(mode: LineMode): String {
   return LineColourHex(mode.toString());
@@ -77,4 +79,18 @@ function LineModeWeighting(mode: LineMode): number {
   }
 }
 
-export {LineColourHex, LineModeColourHex, LineModeWeighting};
+interface LineModeImageProps {
+  mode: LineMode;
+  [otherOptions: string]: any;
+}
+function LineModeImage({mode, ...otherOptions}: LineModeImageProps) {
+  switch (mode) {
+    case LineMode.NationalRail:
+    case LineMode.InternationalRail:
+      return <NationalRailSvg stroke={LineModeColourHex(mode)} {...otherOptions}/>;
+    default:
+      return <Roundel fill={LineModeColourHex(mode)} {...otherOptions}/>;
+  }
+}
+
+export {LineColourHex, LineModeColourHex, LineModeWeighting, LineModeImage};

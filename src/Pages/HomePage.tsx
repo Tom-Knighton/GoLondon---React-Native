@@ -1,6 +1,14 @@
 import MapboxGL, {Camera, LineLayer, ShapeSource} from '@rnmapbox/maps';
-import {useEffect, useState} from 'react';
-import {SafeAreaView, StyleSheet, useColorScheme, useWindowDimensions, View} from 'react-native';
+import {useEffect, useRef, useState} from 'react';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import GLSDK from '../SDK/APIClient';
 import {StopPoint} from '../SDK/Models/GLPoint';
 import {StopPointMarker} from '../Views/Markers/StopPointMarker';
@@ -8,6 +16,10 @@ import * as turf from '@turf/turf';
 import {Surface, FAB, Button} from 'react-native-paper';
 import MapSearchBar from '../Views/Controls/MapSearchBar';
 import {useKeyboard} from '../lib/useKeyboard';
+import Carousel, {Pagination} from 'react-native-snap-carousel';
+import {LineModeImage} from '../SDK/Extensions/Line_etc';
+import {LineMode} from '../SDK/Models/Imported';
+import {VStack, HStack} from 'react-native-flex-layout';
 
 const HomePage = () => {
   const isDarkMode = useColorScheme() === 'dark';
@@ -18,20 +30,96 @@ const HomePage = () => {
     },
   });
 
+  const ref = useRef<Carousel<StopPoint>>(null);
   const [markers, setMarkers] = useState<StopPoint[]>([]);
   const keyboard = useKeyboard();
   const dimensions = useWindowDimensions();
+
+  const [selectedDetailId, setSelectedDetailId] = useState<string|undefined|null>();
 
   useEffect(() => {
     async function loadMarkers() {
       const res = await GLSDK.Search.SearchAround(51.57483, 0.183265);
       if (res) {
         setMarkers(res);
+        setSelectedDetailId(res[0].id)
       }
     }
 
     loadMarkers();
   }, []);
+
+  const carouselItem = ({
+    item,
+    index,
+    dataIndex,
+  }: {
+    item: any;
+    index: number;
+    dataIndex: number;
+  }) => {
+    if (item instanceof StopPoint) {
+      const stop = item as StopPoint;
+      return (
+        <View style={{flex: 1, justifyContent: 'flex-end'}}>
+          <Surface
+            style={{
+              padding: 12,
+              borderRadius: 10,
+              minHeight: 30,
+            }}>
+            <VStack style={{display: 'flex', alignItems: 'center'}}>
+              <Text style={{marginBottom: 2}}>
+                {stop.name ?? stop.commonName ?? ':('}
+              </Text>
+              {item.lineModeGroups?.map(mode => (
+                <LineModeImage
+                  mode={mode.modeName ?? LineMode.Unk}
+                  width={25}
+                  height={25}
+                  key={mode.modeName}
+                  style={{marginTop: 2}}
+                />
+              ))}
+
+              <HStack>
+                {item.lineModeGroups?.map(mode => (
+                  <View
+                    key={mode.modeName}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      justifyContent: 'center',
+                      marginTop: 4,
+                    }}>
+                    {mode.modeName == LineMode.Bus && (
+                      <>
+                        {mode.lineIdentifier?.map(id => (
+                          <Surface
+                            key={id}
+                            style={{
+                              backgroundColor: 'red',
+                              padding: 2,
+                              margin: 2,
+                              minWidth: 30,
+                              borderRadius: 5,
+                            }}
+                            elevation={3}>
+                            <Text style={{textAlign: 'center'}}>{id}</Text>
+                          </Surface>
+                        ))}
+                      </>
+                    )}
+                  </View>
+                ))}
+              </HStack>
+            </VStack>
+          </Surface>
+        </View>
+      );
+    }
+  };
 
   return (
     <>
@@ -63,11 +151,12 @@ const HomePage = () => {
           </ShapeSource>
 
           {markers.map(marker => (
-            <StopPointMarker stopPoint={marker} key={marker.lat} />
+            <StopPointMarker stopPoint={marker} key={marker.lat} selectedId={selectedDetailId ?? ""}/>
           ))}
         </>
       </MapboxGL.MapView>
 
+      {/** FAB Buttons */}
       <>
         <FAB
           style={{position: 'absolute', right: 8, top: 40, borderRadius: 32}}
@@ -92,6 +181,33 @@ const HomePage = () => {
         />
       </>
 
+      {/** Carousel */}
+      <>
+        <Carousel
+          ref={ref}
+          containerCustomStyle={{
+            position: 'absolute',
+            bottom: 110 + 20,
+            flex: 1,
+          }}
+          data={markers}
+          renderItem={carouselItem}
+          itemWidth={dimensions.width - 90}
+          sliderWidth={dimensions.width}
+          vertical={false}
+          enableSnap={true}
+          activeSlideAlignment="center"
+          inactiveSlideShift={5}
+          inactiveSlideScale={0.9}
+          onSnapToItem={(index: number) => {
+            setSelectedDetailId(markers[index].id)
+          }}
+          // @ts-ignore
+          disableIntervalMomentum={true}
+        />
+      </>
+
+      {/**Search Bar */}
       <SafeAreaView>
         <MapSearchBar
           style={{
@@ -100,7 +216,8 @@ const HomePage = () => {
             bottom: 26,
             left: 16,
             right: 16,
-            maxHeight: dimensions.height - (keyboard !== 0 ? keyboard + 40 : 120)
+            maxHeight:
+              dimensions.height - (keyboard !== 0 ? keyboard + 40 : 120),
           }}
         />
       </SafeAreaView>

@@ -8,7 +8,7 @@ const _apiClient = axios.create({
 
 
 interface ISearch {
-    SearchAround(lat: Float, lon: Float): Promise<GLPoint[]>
+    SearchAround(lat: Float, lon: Float): Promise<StopPoint[]>
     Search(name: String): Promise<GLPoint[]>
 }
 
