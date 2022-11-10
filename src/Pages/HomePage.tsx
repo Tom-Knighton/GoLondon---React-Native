@@ -1,11 +1,13 @@
 import MapboxGL, {Camera, LineLayer, ShapeSource} from '@rnmapbox/maps';
 import {useEffect, useState} from 'react';
-import {StyleSheet, useColorScheme, View} from 'react-native';
+import {SafeAreaView, StyleSheet, useColorScheme, useWindowDimensions, View} from 'react-native';
 import GLSDK from '../SDK/APIClient';
 import {StopPoint} from '../SDK/Models/GLPoint';
 import {StopPointMarker} from '../Views/Markers/StopPointMarker';
 import * as turf from '@turf/turf';
 import {Surface, FAB, Button} from 'react-native-paper';
+import MapSearchBar from '../Views/Controls/MapSearchBar';
+import {useKeyboard} from '../lib/useKeyboard';
 
 const HomePage = () => {
   const isDarkMode = useColorScheme() === 'dark';
@@ -17,6 +19,8 @@ const HomePage = () => {
   });
 
   const [markers, setMarkers] = useState<StopPoint[]>([]);
+  const keyboard = useKeyboard();
+  const dimensions = useWindowDimensions();
 
   useEffect(() => {
     async function loadMarkers() {
@@ -65,10 +69,41 @@ const HomePage = () => {
       </MapboxGL.MapView>
 
       <>
-        <FAB style={{position: 'absolute', right: 8, top: 40, borderRadius: 32}} icon="train" mode='elevated' onPress={() => {}} variant='surface'/>
-        <FAB style={{position: 'absolute', right: 8, top: 110, borderRadius: 32}} icon="filter-variant" mode='elevated' onPress={() => {}} variant='surface'/>
-        <FAB style={{position: 'absolute', right: 8, top: 180, borderRadius: 32}} icon="crosshairs-gps" mode='elevated' onPress={() => {}} variant='surface'/>
+        <FAB
+          style={{position: 'absolute', right: 8, top: 40, borderRadius: 32}}
+          icon="train"
+          mode="elevated"
+          onPress={() => {}}
+          variant="surface"
+        />
+        <FAB
+          style={{position: 'absolute', right: 8, top: 110, borderRadius: 32}}
+          icon="filter-variant"
+          mode="elevated"
+          onPress={() => {}}
+          variant="surface"
+        />
+        <FAB
+          style={{position: 'absolute', right: 8, top: 180, borderRadius: 32}}
+          icon="crosshairs-gps"
+          mode="elevated"
+          onPress={() => {}}
+          variant="surface"
+        />
       </>
+
+      <SafeAreaView>
+        <MapSearchBar
+          style={{
+            flex: 1,
+            position: 'absolute',
+            bottom: 26,
+            left: 16,
+            right: 16,
+            maxHeight: dimensions.height - (keyboard !== 0 ? keyboard + 40 : 120)
+          }}
+        />
+      </SafeAreaView>
     </>
   );
 };
