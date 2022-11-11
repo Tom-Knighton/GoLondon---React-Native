@@ -1,4 +1,9 @@
-import MapboxGL, {Camera, LineLayer, ShapeSource} from '@rnmapbox/maps';
+import MapboxGL, {
+  Camera,
+  LineLayer,
+  MapView,
+  ShapeSource,
+} from '@rnmapbox/maps';
 import {useEffect, useRef, useState} from 'react';
 import {
   SafeAreaView,
@@ -29,13 +34,13 @@ const HomePage = () => {
     },
   });
 
-  // const ref = useRef<Carousel>(null);
   const [markers, setMarkers] = useState<StopPoint[]>([]);
   const keyboard = useKeyboard();
   const dimensions = useWindowDimensions();
 
   const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
-  const ref = useRef<Carousel<StopPoint>>(null);
+  const carouselRef = useRef<Carousel<StopPoint>>(null);
+  const mapCameraRef = useRef<Camera>(null);
 
   useEffect(() => {
     async function loadMarkers() {
@@ -53,7 +58,8 @@ const HomePage = () => {
     if (selectedDetailId) {
       const marker = markers.filter(m => m.id === selectedDetailId)[0];
       if (!!marker) {
-        ref.current?.snapToItem(markers.indexOf(marker), true);
+        carouselRef.current?.snapToItem(markers.indexOf(marker), true);
+        mapCameraRef.current?.flyTo([marker.lon, marker.lat], 500);
       }
     }
   }, [selectedDetailId]);
@@ -142,6 +148,7 @@ const HomePage = () => {
         }}>
         <>
           <Camera
+            ref={mapCameraRef}
             defaultSettings={{
               centerCoordinate: [0.183265, 51.57483],
               zoomLevel: 14,
@@ -204,7 +211,7 @@ const HomePage = () => {
       <>
         {selectedDetailId && (
           <Carousel
-            ref={ref}
+            ref={carouselRef}
             containerCustomStyle={{
               position: 'absolute',
               bottom: 110 + 20,
