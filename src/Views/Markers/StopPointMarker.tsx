@@ -7,7 +7,6 @@ import {LineMode} from '../../SDK/Models/Imported';
 import Roundel from '../../assets/img/svg/Roundel';
 import {useEffect, useRef, useState} from 'react';
 import PointAnnotation from '@rnmapbox/maps/javascript/components/PointAnnotation';
-import { gestureHandlerRootHOC } from 'react-native-gesture-handler';
 interface StopPointMarkerProps {
   stopPoint: StopPoint;
   selectedId: string | null;
