@@ -9,7 +9,7 @@
  */
 
 import MapboxGL from '@rnmapbox/maps';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {Provider as PaperProvider} from 'react-native-paper';
 import {StatusBar, StyleSheet, useColorScheme, View} from 'react-native';
 

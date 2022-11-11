@@ -51,8 +51,16 @@ const HomePage = () => {
       }
     }
 
+    MapboxGL.requestAndroidLocationPermissions();
+    MapboxGL.locationManager.start();
+
     loadMarkers();
+
+    return(): void => {
+      MapboxGL.locationManager.stop();
+    }
   }, []);
+
 
   useEffect(() => {
     if (selectedDetailId) {
@@ -179,6 +187,8 @@ const HomePage = () => {
               }}
             />
           ))}
+
+          <MapboxGL.UserLocation visible={true} renderMode={'native'} showsUserHeadingIndicator/>
         </>
       </MapboxGL.MapView>
 
