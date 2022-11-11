@@ -8,34 +8,14 @@
  * @format
  */
 
-import MapboxGL, {Camera, MarkerView, PointAnnotation} from '@rnmapbox/maps';
-import React, {useEffect, useState, type PropsWithChildren} from 'react';
+import MapboxGL from '@rnmapbox/maps';
+import React from 'react';
 import {Provider as PaperProvider} from 'react-native-paper';
-import {
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import {StatusBar, StyleSheet, useColorScheme, View} from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {HomePage} from './src/Pages/HomePage';
-import {
-  useSafeAreaInsets,
-  SafeAreaProvider,
-} from 'react-native-safe-area-context';
-import {Appbar, BottomNavigation, FAB, useTheme} from 'react-native-paper';
-import Roundel from './src/assets/img/svg/Roundel';
+import {BottomNavigation} from 'react-native-paper';
 import LinesPage from './src/Pages/LinesPage';
 
 MapboxGL.setAccessToken(

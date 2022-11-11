@@ -1,18 +1,20 @@
 import {Image, View} from 'react-native';
 import {StopPoint} from '../../SDK/Models/GLPoint';
 import {Stack, HStack, VStack} from 'react-native-flex-layout';
-import MapboxGL, {MarkerView} from '@rnmapbox/maps';
+import MapboxGL, {MapView, MarkerView} from '@rnmapbox/maps';
 import {Text} from 'react-native-paper';
 import {LineMode} from '../../SDK/Models/Imported';
 import Roundel from '../../assets/img/svg/Roundel';
 import {useEffect, useRef, useState} from 'react';
 import PointAnnotation from '@rnmapbox/maps/javascript/components/PointAnnotation';
+import { gestureHandlerRootHOC } from 'react-native-gesture-handler';
 interface StopPointMarkerProps {
   stopPoint: StopPoint;
-  selectedId: string;
+  selectedId: string | null;
+  updateSelected: (newId?: string|null) => void;
 }
 
-const StopPointMarker = ({stopPoint, selectedId}: StopPointMarkerProps) => {
+const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarkerProps) => {
   function isBusOnly(): Boolean {
     return (
       stopPoint.lineModeGroups?.length == 1 &&
@@ -35,37 +37,40 @@ const StopPointMarker = ({stopPoint, selectedId}: StopPointMarkerProps) => {
     return isBus() && stopPoint.stopLetter != undefined;
   }
 
-  const [isSelected, setSelected] = useState<Boolean>(false);
+  const [isSelected, setSelected] = useState<Boolean>(true);
 
   const circleRef = useRef<PointAnnotation>();
   const lineRef = useRef<PointAnnotation>();
 
   useEffect(() => {
     if (selectedId === stopPoint.id) {
-      console.log('I am selected! ' + selectedId + stopPoint.indicator);
       setSelected(true);
     } else {
-      setSelected(false);
+      setSelected(!selectedId);
     }
 
     setTimeout(() => {
       circleRef?.current?.refresh();
       lineRef?.current?.refresh();
-    }, 100);
+    }, 1);
 
   }, [selectedId]);
 
   useEffect(() => {}, [isSelected]);
 
+
   return (
     <>
       <MapboxGL.PointAnnotation
-        id={Math.random.toString()}
+        id={stopPoint.id + 'top'}
         allowOverlap={true}
         coordinate={[stopPoint.lon, stopPoint.lat]}
         anchor={{x: 0.45, y: 1.5}}
         ref={circleRef}
-        selected={isSelected}>
+        onSelected={() => {
+          updateSelected(stopPoint.id)
+        }}
+        >
         <View
           style={{
             display: 'flex',
@@ -109,12 +114,12 @@ const StopPointMarker = ({stopPoint, selectedId}: StopPointMarkerProps) => {
       </MapboxGL.PointAnnotation>
 
       <MapboxGL.PointAnnotation
-        id={Math.random.toString()}
+        id={stopPoint.id + 'bottom'}
         allowOverlap={true}
         coordinate={[stopPoint.lon, stopPoint.lat]}
         anchor={{x: -1.5, y: 1}}
         ref={lineRef}
-        selected={isSelected}>
+        >
         <View
           style={{
             width: 25,
