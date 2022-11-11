@@ -35,6 +35,11 @@ const HomePage = () => {
   });
 
   const [markers, setMarkers] = useState<StopPoint[]>([]);
+  const [location, setLocation] = useState<MapboxGL.Location>();
+  const [hasSetLoc, setHasSetLoc] = useState<Boolean>(false);
+  const [lastSearchedLocation, setLastSearchedLocation] = useState<number[]>(
+    [],
+  );
   const keyboard = useKeyboard();
   const dimensions = useWindowDimensions();
 
@@ -43,24 +48,13 @@ const HomePage = () => {
   const mapCameraRef = useRef<Camera>(null);
 
   useEffect(() => {
-    async function loadMarkers() {
-      const res = await GLSDK.Search.SearchAround(51.57483, 0.183265);
-      if (res) {
-        setMarkers(res);
-        setSelectedDetailId(null);
-      }
-    }
-
     MapboxGL.requestAndroidLocationPermissions();
     MapboxGL.locationManager.start();
 
-    loadMarkers();
-
-    return(): void => {
+    return (): void => {
       MapboxGL.locationManager.stop();
-    }
+    };
   }, []);
-
 
   useEffect(() => {
     if (selectedDetailId) {
@@ -71,6 +65,27 @@ const HomePage = () => {
       }
     }
   }, [selectedDetailId]);
+
+  useEffect(() => {
+    if (!hasSetLoc && location) {
+      mapCameraRef.current?.flyTo(
+        [location.coords.longitude, location.coords.latitude],
+        0,
+      );
+      setHasSetLoc(true);
+
+      async function loadMarkers(lat: number, lon: number) {
+        const res = await GLSDK.Search.SearchAround(lat, lon);
+        if (res) {
+          setLastSearchedLocation([lat, lon]);
+          setMarkers(res);
+          setSelectedDetailId(null);
+        }
+      }
+
+      loadMarkers(location.coords.latitude, location.coords.longitude);
+    }
+  }, [location]);
 
   const carouselItem = ({index}: {index: number}) => {
     const item = markers[index];
@@ -137,6 +152,13 @@ const HomePage = () => {
     }
   };
 
+  function getCircleExp(): GeoJSON.Feature {
+    var point = turf.point([lastSearchedLocation[1], lastSearchedLocation[0]]);
+    var buffered = turf.buffer(point, 950, {units: 'meters', steps: 30});
+
+    return buffered;
+  }
+
   return (
     <>
       <MapboxGL.MapView
@@ -155,25 +177,20 @@ const HomePage = () => {
           setSelectedDetailId(null);
         }}>
         <>
-          <Camera
-            ref={mapCameraRef}
-            defaultSettings={{
-              centerCoordinate: [0.183265, 51.57483],
-              zoomLevel: 14,
-            }}
-            centerCoordinate={[0.183265, 51.57483]}
-            zoomLevel={14}></Camera>
+          <Camera ref={mapCameraRef} zoomLevel={14} />
 
-          <ShapeSource
-            id="search-circle-source"
-            shape={getCircleExp()}
-            onPress={() => {
-              console.log('2');
-            }}>
-            <LineLayer
-              id="search-circle"
-              style={{lineColor: 'blue'}}></LineLayer>
-          </ShapeSource>
+          {lastSearchedLocation.length > 0 && (
+            <ShapeSource
+              id="search-circle-source"
+              shape={getCircleExp()}
+              onPress={() => {
+                console.log('2');
+              }}>
+              <LineLayer
+                id="search-circle"
+                style={{lineColor: 'blue'}}></LineLayer>
+            </ShapeSource>
+          )}
 
           {markers.map(marker => (
             <StopPointMarker
@@ -188,7 +205,12 @@ const HomePage = () => {
             />
           ))}
 
-          <MapboxGL.UserLocation visible={true} renderMode={'native'} showsUserHeadingIndicator/>
+          <MapboxGL.UserLocation
+            visible={true}
+            renderMode={'native'}
+            showsUserHeadingIndicator
+            onUpdate={setLocation}
+          />
         </>
       </MapboxGL.MapView>
 
@@ -264,10 +286,3 @@ const HomePage = () => {
 };
 
 export {HomePage};
-
-function getCircleExp(): GeoJSON.Feature {
-  var point = turf.point([0.183265, 51.57483]);
-  var buffered = turf.buffer(point, 950, {units: 'meters', steps: 30});
-
-  return buffered;
-}
