@@ -159,6 +159,16 @@ const HomePage = () => {
     return buffered;
   }
 
+  function flyToUser() {
+    if (location) {
+      mapCameraRef.current?.flyTo(
+        [location.coords.longitude, location.coords.latitude],
+        750,
+      );
+      setTimeout(() => mapCameraRef.current?.zoomTo(13), 800);
+    }
+  }
+
   return (
     <>
       <MapboxGL.MapView
@@ -230,13 +240,16 @@ const HomePage = () => {
           onPress={() => {}}
           variant="surface"
         />
-        <FAB
-          style={{position: 'absolute', right: 8, top: 180, borderRadius: 32}}
-          icon="crosshairs-gps"
-          mode="elevated"
-          onPress={() => {}}
-          variant="surface"
-        />
+
+        {location && (
+          <FAB
+            style={{position: 'absolute', right: 8, top: 180, borderRadius: 32}}
+            icon="crosshairs-gps"
+            mode="elevated"
+            onPress={() => flyToUser()}
+            variant="surface"
+          />
+        )}
       </>
 
       {/** Carousel */}
