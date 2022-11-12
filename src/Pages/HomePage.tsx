@@ -35,17 +35,20 @@ const HomePage = () => {
   });
 
   const [markers, setMarkers] = useState<StopPoint[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [location, setLocation] = useState<MapboxGL.Location>();
   const [hasSetLoc, setHasSetLoc] = useState<Boolean>(false);
   const [lastSearchedLocation, setLastSearchedLocation] = useState<number[]>(
     [],
   );
+  const [hasMovedFromSearch, setHasMovedFromSearch] = useState<boolean>(false);
   const keyboard = useKeyboard();
   const dimensions = useWindowDimensions();
 
   const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
   const carouselRef = useRef<Carousel<StopPoint>>(null);
   const mapCameraRef = useRef<Camera>(null);
+  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
     MapboxGL.requestAndroidLocationPermissions();
@@ -74,16 +77,7 @@ const HomePage = () => {
       );
       setHasSetLoc(true);
 
-      async function loadMarkers(lat: number, lon: number) {
-        const res = await GLSDK.Search.SearchAround(lat, lon);
-        if (res) {
-          setLastSearchedLocation([lat, lon]);
-          setMarkers(res);
-          setSelectedDetailId(null);
-        }
-      }
-
-      loadMarkers(location.coords.latitude, location.coords.longitude);
+      Search(location.coords.latitude, location.coords.longitude);
     }
   }, [location]);
 
@@ -169,9 +163,32 @@ const HomePage = () => {
     }
   }
 
+  async function Search(lat?: number, lon?: number) {
+    setIsLoading(true);
+
+    if (!lat || !lon) {
+      const center = await mapRef.current?.getCenter();
+      if (center) {
+        lat = center[1];
+        lon = center[0];
+      } else {
+        return;
+      }
+    }
+
+    const res = await GLSDK.Search.SearchAround(lat, lon);
+    if (res) {
+      setLastSearchedLocation([lat, lon]);
+      setMarkers(res);
+      setSelectedDetailId(null);
+    }
+    setIsLoading(false);
+  }
+
   return (
     <>
       <MapboxGL.MapView
+        ref={mapRef}
         styleURL={
           isDarkMode
             ? 'mapbox://styles/tomknighton/cl145juvf002h14rkofjuct4r'
@@ -183,11 +200,16 @@ const HomePage = () => {
         attributionEnabled={false}
         pitchEnabled={false}
         rotateEnabled={false}
+        preferredFramesPerSecond={120}
         onPress={() => {
           setSelectedDetailId(null);
         }}>
         <>
-          <Camera ref={mapCameraRef} zoomLevel={14} />
+          <Camera
+            ref={mapCameraRef}
+            zoomLevel={13}
+            defaultSettings={{zoomLevel: 13}}
+          />
 
           {lastSearchedLocation.length > 0 && (
             <ShapeSource
@@ -250,6 +272,15 @@ const HomePage = () => {
             variant="surface"
           />
         )}
+
+        <FAB
+          style={{position: 'absolute', right: 8, top: 250, borderRadius: 32}}
+          icon="map-search"
+          mode="elevated"
+          onPress={Search}
+          variant="surface"
+          loading={isLoading}
+        />
       </>
 
       {/** Carousel */}
