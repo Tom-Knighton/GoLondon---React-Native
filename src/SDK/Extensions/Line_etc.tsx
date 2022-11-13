@@ -90,6 +90,8 @@ function LineModeImage({mode, ...otherOptions}: LineModeImageProps) {
     case LineMode.InternationalRail:
     case LineMode.Dlr:
       return <NationalRailSvg stroke={LineModeColourHex(mode)} {...otherOptions}/>;
+    case LineMode.Tube:
+      return <Roundel fill={'#EE2E24'} fill2={'blue'} {...otherOptions}/>;
     default:
       return <Roundel fill={LineModeColourHex(mode)} {...otherOptions}/>;
   }
