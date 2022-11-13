@@ -17,6 +17,7 @@ import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {HomePage} from './src/Pages/HomePage';
 import {BottomNavigation} from 'react-native-paper';
 import LinesPage from './src/Pages/LinesPage';
+import MainMapViewModel from './src/ViewModels/MainMapViewModel';
 
 MapboxGL.setAccessToken(
   'pk.eyJ1IjoidG9ta25pZ2h0b24iLCJhIjoiY2p0ZWhyb2s2MTR1NzN5bzdtZm9udmJueSJ9.c4dShyMCfZ6JhsnFRf72Rg',
@@ -46,8 +47,10 @@ const App = () => {
     },
   ]);
 
+  const mapModel = new MainMapViewModel();
+
   const renderScene = BottomNavigation.SceneMap({
-    home: HomePage,
+    home: () => <HomePage viewModel={mapModel}/>,
     lines: LinesPage,
   });
 
