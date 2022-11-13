@@ -7,13 +7,19 @@ import {LineMode} from '../../SDK/Models/Imported';
 import Roundel from '../../assets/img/svg/Roundel';
 import {useEffect, useRef, useState} from 'react';
 import PointAnnotation from '@rnmapbox/maps/javascript/components/PointAnnotation';
+import {LineModeColourHex, LineModeImage} from '../../SDK/Extensions/Line_etc';
+import { MostWeightedMode } from '../../SDK/Extensions/StopPointExtensions';
 interface StopPointMarkerProps {
   stopPoint: StopPoint;
   selectedId: string | null;
-  updateSelected: (newId?: string|null) => void;
+  updateSelected: (newId?: string | null) => void;
 }
 
-const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarkerProps) => {
+const StopPointMarker = ({
+  stopPoint,
+  selectedId,
+  updateSelected,
+}: StopPointMarkerProps) => {
   function isBusOnly(): Boolean {
     return (
       stopPoint.lineModeGroups?.length == 1 &&
@@ -36,6 +42,25 @@ const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarke
     return isBus() && stopPoint.stopLetter != undefined;
   }
 
+  function isNRSymbol(): boolean {
+    const mode = MostWeightedMode(stopPoint);
+    const nr = [LineMode.NationalRail, LineMode.InternationalRail, LineMode.Dlr];
+    return nr.includes(mode);
+  }
+
+  function paddingForSymbol(): number[] {
+    const isNr = isNRSymbol();
+    if (isBus()) {
+      return [0, 0, 0, 0];
+    }
+
+    if (isNr) {
+      return [7, 2.5, 0, 2.5];
+    }
+
+    return [2.5, 2.5, 2.5, 2.5];
+  }
+
   const [isSelected, setSelected] = useState<Boolean>(true);
 
   const circleRef = useRef<PointAnnotation>();
@@ -43,6 +68,7 @@ const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarke
 
   useEffect(() => {
     if (selectedId === stopPoint.id) {
+      console.log('Most weighted for this is ' + MostWeightedMode(stopPoint))
       setSelected(true);
     } else {
       setSelected(!selectedId);
@@ -52,11 +78,9 @@ const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarke
       circleRef?.current?.refresh();
       lineRef?.current?.refresh();
     }, 1);
-
   }, [selectedId]);
 
   useEffect(() => {}, [isSelected]);
-
 
   return (
     <>
@@ -67,9 +91,8 @@ const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarke
         anchor={{x: 0.45, y: 1.5}}
         ref={circleRef}
         onSelected={() => {
-          updateSelected(stopPoint.id)
-        }}
-        >
+          updateSelected(stopPoint.id);
+        }}>
         <View
           style={{
             display: 'flex',
@@ -82,7 +105,10 @@ const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarke
               width: 30,
               height: 30,
               borderRadius: 30 / 2,
-              padding: shouldDisplayStopLetter() ? 0 : 2.5,
+              paddingTop: paddingForSymbol()[0],
+              paddingEnd: paddingForSymbol()[1],
+              paddingBottom: paddingForSymbol()[2],
+              paddingStart: paddingForSymbol()[3],
               backgroundColor: `${
                 isBus() ? `#EE2E24${isSelected ? 'FF' : '22'}` : 'white'
               }`,
@@ -95,16 +121,16 @@ const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarke
                   textAlign: 'center',
                   lineHeight: 30,
                   fontWeight: 'bold',
-                  color: `#FFFFFF${isSelected ? 'FF' : '22'}`
+                  color: `#FFFFFF${isSelected ? 'FF' : '22'}`,
                 }}>
                 {stopPoint.stopLetter}
               </Text>
             )}
             {!shouldDisplayStopLetter() && (
-              <Roundel
+              <LineModeImage
+                mode={MostWeightedMode(stopPoint)}
                 width={25}
-                height={25}
-                fill={isBus() ? 'white' : 'purple'}
+                height={isNRSymbol() ? 15 : 25}
                 opacity={isSelected ? 1 : 0.3}
               />
             )}
@@ -117,8 +143,7 @@ const StopPointMarker = ({stopPoint, selectedId, updateSelected}: StopPointMarke
         allowOverlap={true}
         coordinate={[stopPoint.lon, stopPoint.lat]}
         anchor={{x: -1.5, y: 1}}
-        ref={lineRef}
-        >
+        ref={lineRef}>
         <View
           style={{
             width: 25,

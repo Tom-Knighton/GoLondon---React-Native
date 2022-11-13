@@ -23,7 +23,7 @@ export default class MainMapViewModel {
     const res = await GLSDK.Search.SearchAround(lat, lon);
     if (res) {
       this.setLastSearched([lat, lon]);
-      this.setStopPoints(res);
+      this.setStopPoints(res.filter(r => (r.lineModeGroups?.length ?? 0) > 0));
       this.setSelectedStop(null);
     }
     this.setIsLoading(false);
