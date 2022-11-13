@@ -4,7 +4,7 @@ import MapboxGL, {
   MapView,
   ShapeSource,
 } from '@rnmapbox/maps';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef                                                                  } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -13,10 +13,8 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import GLSDK from '../SDK/APIClient';
 import {StopPoint} from '../SDK/Models/GLPoint';
 import {StopPointMarker} from '../Views/Markers/StopPointMarker';
-import * as turf from '@turf/turf';
 import {Surface, FAB} from 'react-native-paper';
 import MapSearchBar from '../Views/Controls/MapSearchBar';
 import {useKeyboard} from '../lib/useKeyboard';
@@ -24,8 +22,11 @@ import Carousel from 'react-native-snap-carousel';
 import {LineModeImage} from '../SDK/Extensions/Line_etc';
 import {LineMode} from '../SDK/Models/Imported';
 import {VStack, HStack} from 'react-native-flex-layout';
+import MainMapViewModel from '../ViewModels/MainMapViewModel';
+import {observer} from 'mobx-react-lite';
+import {reaction, autorun} from 'mobx';
 
-const HomePage = () => {
+const HomePage = observer(({viewModel}: {viewModel: MainMapViewModel}) => {
   const isDarkMode = useColorScheme() === 'dark';
 
   const styles = StyleSheet.create({
@@ -34,18 +35,9 @@ const HomePage = () => {
     },
   });
 
-  const [markers, setMarkers] = useState<StopPoint[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [location, setLocation] = useState<MapboxGL.Location>();
-  const [hasSetLoc, setHasSetLoc] = useState<Boolean>(false);
-  const [lastSearchedLocation, setLastSearchedLocation] = useState<number[]>(
-    [],
-  );
-  const [hasMovedFromSearch, setHasMovedFromSearch] = useState<boolean>(false);
   const keyboard = useKeyboard();
   const dimensions = useWindowDimensions();
 
-  const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
   const carouselRef = useRef<Carousel<StopPoint>>(null);
   const mapCameraRef = useRef<Camera>(null);
   const mapRef = useRef<MapView>(null);
@@ -60,29 +52,22 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedDetailId) {
-      const marker = markers.filter(m => m.id === selectedDetailId)[0];
+    if (viewModel.selectedStopId) {
+      const marker = viewModel.stopPoints.filter(
+        m => m.id === viewModel.selectedStopId,
+      )[0];
       if (!!marker) {
-        carouselRef.current?.snapToItem(markers.indexOf(marker), true);
+        carouselRef.current?.snapToItem(
+          viewModel.stopPoints.indexOf(marker),
+          true,
+        );
         mapCameraRef.current?.flyTo([marker.lon, marker.lat], 500);
       }
     }
-  }, [selectedDetailId]);
-
-  useEffect(() => {
-    if (!hasSetLoc && location) {
-      mapCameraRef.current?.flyTo(
-        [location.coords.longitude, location.coords.latitude],
-        0,
-      );
-      setHasSetLoc(true);
-
-      Search(location.coords.latitude, location.coords.longitude);
-    }
-  }, [location]);
+  }, [viewModel.selectedStopId]);
 
   const carouselItem = ({index}: {index: number}) => {
-    const item = markers[index];
+    const item = viewModel.stopPoints[index];
     if (item instanceof StopPoint) {
       const stop = item as StopPoint;
       return (
@@ -146,44 +131,33 @@ const HomePage = () => {
     }
   };
 
-  function getCircleExp(): GeoJSON.Feature {
-    var point = turf.point([lastSearchedLocation[1], lastSearchedLocation[0]]);
-    var buffered = turf.buffer(point, 950, {units: 'meters', steps: 30});
-
-    return buffered;
-  }
-
   function flyToUser() {
-    if (location) {
+    if (viewModel.userLocation) {
       mapCameraRef.current?.flyTo(
-        [location.coords.longitude, location.coords.latitude],
+        [
+          viewModel.userLocation[1],
+          viewModel.userLocation[0]
+        ],
         750,
       );
       setTimeout(() => mapCameraRef.current?.zoomTo(13), 800);
     }
   }
 
-  async function Search(lat?: number, lon?: number) {
-    setIsLoading(true);
 
-    if (!lat || !lon) {
-      const center = await mapRef.current?.getCenter();
-      if (center) {
-        lat = center[1];
-        lon = center[0];
-      } else {
-        return;
+  useEffect(() => {
+    if (viewModel.userLocation) {
+      if (!viewModel.mapHasInit && viewModel.userLocation && viewModel.userLocation?.length > 0) {
+        mapCameraRef.current?.flyTo(
+          [viewModel.userLocation[1], viewModel.userLocation[0]],
+          0,
+        );
+        viewModel.setHasInit();
+
+        viewModel.Search(viewModel.userLocation[0], viewModel.userLocation[1]);
       }
     }
-
-    const res = await GLSDK.Search.SearchAround(lat, lon);
-    if (res) {
-      setLastSearchedLocation([lat, lon]);
-      setMarkers(res);
-      setSelectedDetailId(null);
-    }
-    setIsLoading(false);
-  }
+  }, [viewModel.userLocation])
 
   return (
     <>
@@ -202,7 +176,7 @@ const HomePage = () => {
         rotateEnabled={false}
         preferredFramesPerSecond={120}
         onPress={() => {
-          setSelectedDetailId(null);
+          viewModel.setSelectedStop(null);
         }}>
         <>
           <Camera
@@ -211,10 +185,10 @@ const HomePage = () => {
             defaultSettings={{zoomLevel: 13}}
           />
 
-          {lastSearchedLocation.length > 0 && (
+          {viewModel.lastSearchedCoords && (
             <ShapeSource
               id="search-circle-source"
-              shape={getCircleExp()}
+              shape={viewModel.getCircleExp()}
               onPress={() => {
                 console.log('2');
               }}>
@@ -224,14 +198,14 @@ const HomePage = () => {
             </ShapeSource>
           )}
 
-          {markers.map(marker => (
+          {viewModel.stopPoints.map(marker => (
             <StopPointMarker
               stopPoint={marker}
               key={marker.lat}
-              selectedId={selectedDetailId}
+              selectedId={viewModel.selectedStopId}
               updateSelected={(newId?: string | null) => {
                 if (newId) {
-                  setSelectedDetailId(newId);
+                  viewModel.setSelectedStop(newId);
                 }
               }}
             />
@@ -241,7 +215,7 @@ const HomePage = () => {
             visible={true}
             renderMode={'native'}
             showsUserHeadingIndicator
-            onUpdate={setLocation}
+            onUpdate={(l: MapboxGL.Location) => { viewModel.setuserLocation(l) }}
           />
         </>
       </MapboxGL.MapView>
@@ -263,7 +237,7 @@ const HomePage = () => {
           variant="surface"
         />
 
-        {location && (
+        {viewModel.userLocation && (
           <FAB
             style={{position: 'absolute', right: 8, top: 180, borderRadius: 32}}
             icon="crosshairs-gps"
@@ -277,15 +251,17 @@ const HomePage = () => {
           style={{position: 'absolute', right: 8, top: 250, borderRadius: 32}}
           icon="map-search"
           mode="elevated"
-          onPress={Search}
+          onPress={() => {
+            //TODO: Search
+          }}
           variant="surface"
-          loading={isLoading}
+          loading={viewModel.isLoading}
         />
       </>
 
       {/** Carousel */}
       <>
-        {selectedDetailId && (
+        {viewModel.selectedStopId && (
           <Carousel
             ref={carouselRef}
             containerCustomStyle={{
@@ -293,7 +269,7 @@ const HomePage = () => {
               bottom: 110 + 20,
               flex: 1,
             }}
-            data={markers}
+            data={viewModel.stopPoints}
             renderItem={carouselItem}
             itemWidth={dimensions.width - 90}
             sliderWidth={dimensions.width}
@@ -303,7 +279,7 @@ const HomePage = () => {
             inactiveSlideShift={5}
             inactiveSlideScale={0.9}
             onSnapToItem={(index: number) => {
-              setSelectedDetailId(markers[index].id ?? null);
+              viewModel.setSelectedStop(viewModel.stopPoints[index].id ?? null);
             }}
             // @ts-ignore
             disableIntervalMomentum={true}
@@ -327,6 +303,6 @@ const HomePage = () => {
       </SafeAreaView>
     </>
   );
-};
+});
 
 export {HomePage};
