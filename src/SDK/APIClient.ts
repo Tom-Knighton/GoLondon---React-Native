@@ -1,6 +1,7 @@
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import axios from 'axios';
 import { GLPoint, PointType, POIPoint, StopPoint } from "./Models/GLPoint";
+import { LineMode } from "./Models/Imported";
 
 const _apiClient = axios.create({
     baseURL: 'https://api.golondon.tomk.online/api/',
@@ -8,7 +9,7 @@ const _apiClient = axios.create({
 
 
 interface ISearch {
-    SearchAround(lat: Float, lon: Float): Promise<StopPoint[]>
+    SearchAround(lat: Float, lon: Float, filterBy: LineMode[], radius: number): Promise<StopPoint[]>
     Search(name: String): Promise<GLPoint[]>
 }
 
@@ -19,9 +20,13 @@ interface IGLSDK {
 let GLSDK: IGLSDK = {
 
     Search: {
-        async SearchAround(lat: number, lon: number): Promise<GLPoint[]> {
-            console.log(`${'https://api.golondon.tomk.online/api/'}Search/Around/${lat}/${lon}`)
-            let resp = await _apiClient.get<GLPoint[]>(`Search/Around/${lat}/${lon}?radius=850`);
+        async SearchAround(lat: number, lon: number, filterBy?: LineMode[], radius?: number): Promise<GLPoint[]> {
+            let url = `Search/Around/${lat}/${lon}?radius=${radius ?? 850}`;
+            filterBy?.forEach((m) => {
+                url += `&modesToFilterBy=${m}`;
+            });
+            console.log(url);
+            let resp = await _apiClient.get<GLPoint[]>(url);
             let data: GLPoint[] = [];
             resp.data.forEach(element => {
                 if (element.pointType == PointType.StopPoint) {

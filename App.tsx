@@ -9,8 +9,8 @@
  */
 
 import MapboxGL from '@rnmapbox/maps';
-import React, { useEffect } from 'react';
-import {Provider as PaperProvider} from 'react-native-paper';
+import React, {useEffect} from 'react';
+import {Portal, Provider as PaperProvider} from 'react-native-paper';
 import {StatusBar, StyleSheet, useColorScheme, View} from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
@@ -18,6 +18,10 @@ import {HomePage} from './src/Pages/HomePage';
 import {BottomNavigation} from 'react-native-paper';
 import LinesPage from './src/Pages/LinesPage';
 import MainMapViewModel from './src/ViewModels/MainMapViewModel';
+import {
+  gestureHandlerRootHOC,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 
 MapboxGL.setAccessToken(
   'pk.eyJ1IjoidG9ta25pZ2h0b24iLCJhIjoiY2p0ZWhyb2s2MTR1NzN5bzdtZm9udmJueSJ9.c4dShyMCfZ6JhsnFRf72Rg',
@@ -50,17 +54,16 @@ const App = () => {
   const mapModel = new MainMapViewModel();
 
   const renderScene = BottomNavigation.SceneMap({
-    home: () => <HomePage viewModel={mapModel}/>,
-    lines: LinesPage,
+    home: gestureHandlerRootHOC(() => <HomePage viewModel={mapModel} />),
+    lines: () => (
+      <GestureHandlerRootView>
+        <LinesPage />
+      </GestureHandlerRootView>
+    ),
   });
 
-  return (
-    <PaperProvider>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor="transparent"
-        translucent
-      />
+  const Views = gestureHandlerRootHOC(() => (
+    <Portal.Host>
       <View style={styles.page}>
         <View style={styles.container}>
           <BottomNavigation
@@ -72,6 +75,17 @@ const App = () => {
           />
         </View>
       </View>
+    </Portal.Host>
+  ));
+
+  return (
+    <PaperProvider>
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
+      <Views/>
     </PaperProvider>
   );
 };

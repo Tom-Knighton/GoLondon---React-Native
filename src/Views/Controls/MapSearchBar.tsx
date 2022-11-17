@@ -22,7 +22,7 @@ import {
   LineColourHex,
   LineModeColourHex,
   LineModeWeighting,
-} from '../../SDK/Extensions/Line_etc';
+} from '../../Extensions/Line_etc';
 
 interface MapSearchBarProps {
   style: ViewStyle;

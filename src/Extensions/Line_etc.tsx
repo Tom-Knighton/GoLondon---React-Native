@@ -1,7 +1,7 @@
-import {LineMode} from '../Models/Imported';
-import NationalRailSvg from '../../assets/img/svg/NationalRail';
-import Roundel from '../../assets/img/svg/Roundel';
-import { StopPoint } from '../Models/GLPoint';
+import {LineMode} from '../SDK/Models/Imported';
+import NationalRailSvg from '../assets/img/svg/NationalRail';
+import Roundel from '../assets/img/svg/Roundel';
+import {StopPoint} from '../SDK/Models/GLPoint';
 
 function LineModeColourHex(mode: LineMode): String {
   return LineColourHex(mode.toString());
@@ -53,6 +53,33 @@ function LineColourHex(lineIdentifier: String): String {
   }
 }
 
+function LineModeFriendlyName(mode: LineMode): string {
+  switch (mode) {
+    case LineMode.Bus:
+      return 'Bus';
+    case LineMode.Dlr:
+      return 'DLR';
+    case LineMode.NationalRail:
+      return 'National Rail Services';
+    case LineMode.Overground:
+      return 'Overground';
+    case LineMode.ReplacementBus:
+      return 'Replacement Bus Service';
+    case LineMode.Tube:
+      return 'Tube';
+    case LineMode.ElizabethLine:
+      return 'Elizabeth Line';
+    case LineMode.CableCar:
+      return 'Cable Car';
+    case LineMode.Tram:
+      return 'Tram';
+    case LineMode.Unk:
+      return '';
+    default:
+      return '';
+  }
+}
+
 function LineModeWeighting(mode: LineMode): number {
   switch (mode) {
     case LineMode.Bus:
@@ -84,17 +111,25 @@ interface LineModeImageProps {
   mode: LineMode;
   [otherOptions: string]: any;
 }
+
+function LineModeIsNRSymbol(mode: LineMode) {
+  const modes: LineMode[] = [LineMode.NationalRail, LineMode.InternationalRail, LineMode.Dlr];
+  return modes.includes(mode);
+}
+
 function LineModeImage({mode, ...otherOptions}: LineModeImageProps) {
-  switch (mode) {
-    case LineMode.NationalRail:
-    case LineMode.InternationalRail:
-    case LineMode.Dlr:
-      return <NationalRailSvg stroke={LineModeColourHex(mode)} {...otherOptions}/>;
-    case LineMode.Tube:
-      return <Roundel fill={'#EE2E24'} fill2={'blue'} {...otherOptions}/>;
-    default:
-      return <Roundel fill={LineModeColourHex(mode)} {...otherOptions}/>;
+  if (LineModeIsNRSymbol(mode)) {
+    return (
+      <NationalRailSvg stroke={LineModeColourHex(mode)} {...otherOptions} />
+    );
+  } else {
+    if (mode == LineMode.Tube) {
+      return <Roundel fill={'#EE2E24'} fill2={'blue'} {...otherOptions} />;
+    } else {
+      return <Roundel fill={LineModeColourHex(mode)} {...otherOptions} />;
+
+    }
   }
 }
 
-export {LineColourHex, LineModeColourHex, LineModeWeighting, LineModeImage};
+export {LineModeIsNRSymbol, LineModeFriendlyName, LineColourHex, LineModeColourHex, LineModeWeighting, LineModeImage};

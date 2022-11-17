@@ -4,47 +4,64 @@ import MapboxGL, {
   MapView,
   ShapeSource,
 } from '@rnmapbox/maps';
-import {useEffect, useRef                                                                  } from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
-  Text,
   useColorScheme,
   useWindowDimensions,
-  View,
 } from 'react-native';
+import {FlatList} from 'react-native-gesture-handler';
 import {StopPoint} from '../SDK/Models/GLPoint';
-import {StopPointMarker} from '../Views/Markers/StopPointMarker';
-import {Surface, FAB} from 'react-native-paper';
+import StopPointMarker from '../Views/Markers/StopPointMarker';
+import {Portal, useTheme} from 'react-native-paper';
 import MapSearchBar from '../Views/Controls/MapSearchBar';
 import {useKeyboard} from '../lib/useKeyboard';
-import Carousel from 'react-native-snap-carousel';
-import {LineModeImage} from '../SDK/Extensions/Line_etc';
-import {LineMode} from '../SDK/Models/Imported';
-import {VStack, HStack} from 'react-native-flex-layout';
 import MainMapViewModel from '../ViewModels/MainMapViewModel';
 import {observer} from 'mobx-react-lite';
-import {reaction, autorun} from 'mobx';
+import {MapSearchFilterView} from '../Views/Sheets/MapSearchFilterView';
+import BottomSheet from '@gorhom/bottom-sheet';
+import MapLineModeFilter from '../Models/MapLineModeFilter';
+import {useCallback} from 'react';
+import MapCarousel from '../Views/Home/Carousel';
+import MapFABs from '../Views/Home/MapFABs';
+import MapFab from '../Models/MapFAB';
 
 const HomePage = observer(({viewModel}: {viewModel: MainMapViewModel}) => {
   const isDarkMode = useColorScheme() === 'dark';
 
-  const styles = StyleSheet.create({
-    map: {
-      flex: 1,
-    },
-  });
-
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showCarousel, setShowCarousel] = useState<boolean>(false);
+  const [mapStyle, setMapStyle] = useState<string | null>(null);
   const keyboard = useKeyboard();
   const dimensions = useWindowDimensions();
 
-  const carouselRef = useRef<Carousel<StopPoint>>(null);
+  const carouselRef = useRef<FlatList>(null);
   const mapCameraRef = useRef<Camera>(null);
   const mapRef = useRef<MapView>(null);
+  const filterRef = useRef<BottomSheet>(null);
+
+  const filterSheetSnaps = useMemo(() => ['85%'], []);
+  const theme = useTheme();
+
+  const markers = useMemo(() => viewModel.stopPoints, [viewModel.stopPoints]);
+
+  const setSelected = useCallback(
+    (id: string | null) => {
+      setSelectedId(id);
+    },
+    [selectedId],
+  );
 
   useEffect(() => {
     MapboxGL.requestAndroidLocationPermissions();
     MapboxGL.locationManager.start();
+
+    setMapStyle(
+      isDarkMode
+        ? 'mapbox://styles/tomknighton/cl145juvf002h14rkofjuct4r'
+        : 'mapbox://styles/tomknighton/cl145dxdf000914m7r7ykij8s',
+    );
 
     return (): void => {
       MapboxGL.locationManager.stop();
@@ -52,102 +69,22 @@ const HomePage = observer(({viewModel}: {viewModel: MainMapViewModel}) => {
   }, []);
 
   useEffect(() => {
-    if (viewModel.selectedStopId) {
-      const marker = viewModel.stopPoints.filter(
-        m => m.id === viewModel.selectedStopId,
-      )[0];
-      if (!!marker) {
-        carouselRef.current?.snapToItem(
-          viewModel.stopPoints.indexOf(marker),
-          true,
-        );
-        mapCameraRef.current?.flyTo([marker.lon, marker.lat], 500);
-      }
-    }
-  }, [viewModel.selectedStopId]);
-
-  const carouselItem = ({index}: {index: number}) => {
-    const item = viewModel.stopPoints[index];
-    if (item instanceof StopPoint) {
-      const stop = item as StopPoint;
-      return (
-        <View style={{flex: 1, justifyContent: 'flex-end'}}>
-          <Surface
-            style={{
-              padding: 12,
-              borderRadius: 10,
-              minHeight: 30,
-            }}>
-            <VStack style={{display: 'flex', alignItems: 'center'}}>
-              <Text style={{marginBottom: 2}}>
-                {stop.name ?? stop.commonName ?? ':('}
-              </Text>
-              {item.lineModeGroups?.map(mode => (
-                <LineModeImage
-                  mode={mode.modeName ?? LineMode.Unk}
-                  width={25}
-                  height={25}
-                  key={mode.modeName}
-                  style={{marginTop: 2}}
-                />
-              ))}
-
-              <HStack>
-                {item.lineModeGroups?.map(mode => (
-                  <View
-                    key={mode.modeName}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      justifyContent: 'center',
-                      marginTop: 4,
-                    }}>
-                    {mode.modeName == LineMode.Bus && (
-                      <>
-                        {mode.lineIdentifier?.map(id => (
-                          <Surface
-                            key={id}
-                            style={{
-                              backgroundColor: 'red',
-                              padding: 2,
-                              margin: 2,
-                              minWidth: 30,
-                              borderRadius: 5,
-                            }}
-                            elevation={3}>
-                            <Text style={{textAlign: 'center'}}>{id}</Text>
-                          </Surface>
-                        ))}
-                      </>
-                    )}
-                  </View>
-                ))}
-              </HStack>
-            </VStack>
-          </Surface>
-        </View>
-      );
-    }
-  };
-
-  function flyToUser() {
-    if (viewModel.userLocation) {
-      mapCameraRef.current?.flyTo(
-        [
-          viewModel.userLocation[1],
-          viewModel.userLocation[0]
-        ],
-        750,
-      );
-      setTimeout(() => mapCameraRef.current?.zoomTo(13), 800);
-    }
-  }
-
+    console.log('changing');
+    setMapStyle(
+      isDarkMode
+        ? 'mapbox://styles/tomknighton/cl145juvf002h14rkofjuct4r'
+        : 'mapbox://styles/tomknighton/cl145dxdf000914m7r7ykij8s',
+    );
+    mapRef.current?.forceUpdate();
+  }, [isDarkMode]);
 
   useEffect(() => {
     if (viewModel.userLocation) {
-      if (!viewModel.mapHasInit && viewModel.userLocation && viewModel.userLocation?.length > 0) {
+      if (
+        !viewModel.mapHasInit &&
+        viewModel.userLocation &&
+        viewModel.userLocation?.length > 0
+      ) {
         mapCameraRef.current?.flyTo(
           [viewModel.userLocation[1], viewModel.userLocation[0]],
           0,
@@ -157,10 +94,75 @@ const HomePage = observer(({viewModel}: {viewModel: MainMapViewModel}) => {
         viewModel.Search(viewModel.userLocation[0], viewModel.userLocation[1]);
       }
     }
-  }, [viewModel.userLocation])
+  }, [viewModel.userLocation]);
 
-  return (
-    <>
+  const styles = StyleSheet.create({
+    map: {
+      flex: 1,
+    },
+    sheet: {
+      backgroundColor: theme.colors.elevation.level1,
+    },
+    searchbar: {
+      flex: 1,
+      position: 'absolute',
+      bottom: 26,
+      left: 16,
+      right: 16,
+      maxHeight: dimensions.height - (keyboard !== 0 ? keyboard + 40 : 120),
+    },
+  });
+
+  function flyToUser() {
+    if (viewModel.userLocation) {
+      mapCameraRef.current?.flyTo(
+        [viewModel.userLocation[1], viewModel.userLocation[0]],
+        750,
+      );
+      setTimeout(() => mapCameraRef.current?.zoomTo(13), 800);
+    }
+  }
+
+  const MapMarkers = useMemo(
+    () => (
+      <>
+        {markers.map(marker => (
+          <StopPointMarker
+            stopPoint={marker}
+            key={marker.id}
+            selectedId={selectedId}
+            updateSelected={(id: string | null) => {
+              setShowCarousel(true);
+              setSelected(id);
+              if (id) {
+                setTimeout(() => {
+                  const index = viewModel.stopPoints.findIndex(
+                    m => m.id === id,
+                  );
+                  const marker = viewModel.stopPoints[index];
+                  if (index && !!marker) {
+                    console.log(index);
+                    carouselRef.current?.scrollToIndex({
+                      animated: true,
+                      index: index,
+                      viewOffset: dimensions.width * 0.1,
+                    });
+                    mapCameraRef.current?.moveTo([marker.lon, marker.lat], 500);
+                  }
+                }, 500);
+              } else {
+                setShowCarousel(false);
+              }
+            }}
+          />
+        ))}
+      </>
+    ),
+    [selectedId, viewModel.stopPoints],
+  );
+
+  const Map = useMemo(
+    () => (
       <MapboxGL.MapView
         ref={mapRef}
         styleURL={
@@ -176,7 +178,8 @@ const HomePage = observer(({viewModel}: {viewModel: MainMapViewModel}) => {
         rotateEnabled={false}
         preferredFramesPerSecond={120}
         onPress={() => {
-          viewModel.setSelectedStop(null);
+          setSelected(null);
+          setShowCarousel(false);
         }}>
         <>
           <Camera
@@ -198,108 +201,83 @@ const HomePage = observer(({viewModel}: {viewModel: MainMapViewModel}) => {
             </ShapeSource>
           )}
 
-          {viewModel.stopPoints.map(marker => (
-            <StopPointMarker
-              stopPoint={marker}
-              key={marker.lat}
-              selectedId={viewModel.selectedStopId}
-              updateSelected={(newId?: string | null) => {
-                if (newId) {
-                  viewModel.setSelectedStop(newId);
-                }
-              }}
-            />
-          ))}
+          {MapMarkers}
 
           <MapboxGL.UserLocation
             visible={true}
             renderMode={'native'}
             showsUserHeadingIndicator
-            onUpdate={(l: MapboxGL.Location) => { viewModel.setuserLocation(l) }}
+            onUpdate={(l: MapboxGL.Location) => {
+              viewModel.setuserLocation(l);
+            }}
           />
         </>
       </MapboxGL.MapView>
+    ),
+    [viewModel.stopPoints, selectedId],
+  );
 
-      {/** FAB Buttons */}
-      <>
-        <FAB
-          style={{position: 'absolute', right: 8, top: 40, borderRadius: 32}}
-          icon="train"
-          mode="elevated"
-          onPress={() => {}}
-          variant="surface"
-        />
-        <FAB
-          style={{position: 'absolute', right: 8, top: 110, borderRadius: 32}}
-          icon="filter-variant"
-          mode="elevated"
-          onPress={() => {}}
-          variant="surface"
-        />
+  return (
+    <>
+      {mapStyle && Map}
 
-        {viewModel.userLocation && (
-          <FAB
-            style={{position: 'absolute', right: 8, top: 180, borderRadius: 32}}
-            icon="crosshairs-gps"
-            mode="elevated"
-            onPress={() => flyToUser()}
-            variant="surface"
-          />
-        )}
-
-        <FAB
-          style={{position: 'absolute', right: 8, top: 250, borderRadius: 32}}
-          icon="map-search"
-          mode="elevated"
-          onPress={() => {
-            //TODO: Search
-          }}
-          variant="surface"
-          loading={viewModel.isLoading}
-        />
-      </>
-
-      {/** Carousel */}
-      <>
-        {viewModel.selectedStopId && (
-          <Carousel
-            ref={carouselRef}
-            containerCustomStyle={{
-              position: 'absolute',
-              bottom: 110 + 20,
-              flex: 1,
+      <Portal>
+        <BottomSheet
+          ref={filterRef}
+          index={-1}
+          snapPoints={filterSheetSnaps}
+          enablePanDownToClose={true}
+          enableOverDrag={true}
+          backgroundStyle={styles.sheet}>
+          <MapSearchFilterView
+            onNewFilters={(f: MapLineModeFilter[]) => {
+              filterRef.current?.forceClose();
+              const oldCoords = viewModel.lastSearchedCoords;
+              if (oldCoords) {
+                viewModel.setMapFilters(f);
+                viewModel.Search(oldCoords[0], oldCoords[1]);
+              }
             }}
-            data={viewModel.stopPoints}
-            renderItem={carouselItem}
-            itemWidth={dimensions.width - 90}
-            sliderWidth={dimensions.width}
-            vertical={false}
-            enableSnap={true}
-            activeSlideAlignment="center"
-            inactiveSlideShift={5}
-            inactiveSlideScale={0.9}
-            onSnapToItem={(index: number) => {
-              viewModel.setSelectedStop(viewModel.stopPoints[index].id ?? null);
-            }}
-            // @ts-ignore
-            disableIntervalMomentum={true}
           />
-        )}
-      </>
+        </BottomSheet>
+      </Portal>
 
-      {/**Search Bar */}
+      <MapFABs
+        isSearchLoading={viewModel.isLoading}
+        onPress={async (event: MapFab) => {
+          switch (event) {
+            case MapFab.Filter:
+              filterRef.current?.expand();
+              break;
+            case MapFab.MapMode:
+              break;
+            case MapFab.GoToUser:
+              flyToUser();
+              break;
+            case MapFab.SearchHere:
+              const coords = await mapRef.current?.getCenter();
+              if (coords) {
+                viewModel.Search(coords[1], coords[0]);
+              }
+              break;
+          }
+        }}
+      />
+
+      <MapCarousel
+        ref={carouselRef}
+        data={viewModel.stopPoints}
+        showCarousel={showCarousel}
+        onScrollEnd={(selected: StopPoint | null) => {
+          if (selected) {
+            mapCameraRef.current?.moveTo([selected.lon, selected.lat], 500);
+          }
+          setSelected(selected?.id ?? null);
+        }}
+      />
+
       <SafeAreaView>
-        <MapSearchBar
-          style={{
-            flex: 1,
-            position: 'absolute',
-            bottom: 26,
-            left: 16,
-            right: 16,
-            maxHeight:
-              dimensions.height - (keyboard !== 0 ? keyboard + 40 : 120),
-          }}
-        />
+        <MapSearchBar style={styles.searchbar} />
       </SafeAreaView>
     </>
   );

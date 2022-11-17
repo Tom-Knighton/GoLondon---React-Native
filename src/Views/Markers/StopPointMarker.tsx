@@ -4,15 +4,15 @@ import {Stack, HStack, VStack} from 'react-native-flex-layout';
 import MapboxGL, {MapView, MarkerView} from '@rnmapbox/maps';
 import {Text} from 'react-native-paper';
 import {LineMode} from '../../SDK/Models/Imported';
-import Roundel from '../../assets/img/svg/Roundel';
 import {useEffect, useRef, useState} from 'react';
 import PointAnnotation from '@rnmapbox/maps/javascript/components/PointAnnotation';
-import {LineModeColourHex, LineModeImage} from '../../SDK/Extensions/Line_etc';
-import { MostWeightedMode } from '../../SDK/Extensions/StopPointExtensions';
+import {LineModeColourHex, LineModeImage} from '../../Extensions/Line_etc';
+import { MostWeightedMode } from '../../Extensions/StopPointExtensions';
+import { memo } from 'react';
 interface StopPointMarkerProps {
   stopPoint: StopPoint;
   selectedId: string | null;
-  updateSelected: (newId?: string | null) => void;
+  updateSelected: (newId: string | null) => void;
 }
 
 const StopPointMarker = ({
@@ -20,37 +20,28 @@ const StopPointMarker = ({
   selectedId,
   updateSelected,
 }: StopPointMarkerProps) => {
-  function isBusOnly(): Boolean {
-    return (
-      stopPoint.lineModeGroups?.length == 1 &&
-      stopPoint.lineModeGroups[0].modeName == LineMode.Bus
-    );
-  }
 
-  function isBusStand(): Boolean {
-    return (
-      stopPoint.lineModeGroups?.length == 0 &&
-      stopPoint.indicator?.startsWith('Stand') == true
-    );
-  }
+  const [isBus, setIsBus] = useState<boolean>(false);
+  const [shouldDisplayStopLetter, setShouldDisplayStopLetter] = useState<boolean>(false);
+  const [isNRSymbol, setIsNRSymbol] = useState<boolean>(false);
 
-  function isBus(): Boolean {
-    return isBusOnly() || isBusStand();
-  }
+  useEffect(() => {
+    const _isBusOnly = stopPoint.lineModeGroups?.length == 1 && stopPoint.lineModeGroups[0].modeName == LineMode.Bus;
+    const _isStand = stopPoint.lineModeGroups?.length == 0 && stopPoint.indicator?.startsWith("Stand") == true;
+    const _isBus = _isBusOnly || _isStand;
+    setIsBus(_isBus);
 
-  function shouldDisplayStopLetter(): Boolean {
-    return isBus() && stopPoint.stopLetter != undefined;
-  }
+    const _shouldDisplayStopLetter = _isBus && (!!stopPoint.stopLetter || stopPoint.stopLetter != undefined);
+    setShouldDisplayStopLetter(_shouldDisplayStopLetter);
 
-  function isNRSymbol(): boolean {
     const mode = MostWeightedMode(stopPoint);
     const nr = [LineMode.NationalRail, LineMode.InternationalRail, LineMode.Dlr];
-    return nr.includes(mode);
-  }
+    setIsNRSymbol(nr.includes(mode));
+  }, [stopPoint]);
 
   function paddingForSymbol(): number[] {
-    const isNr = isNRSymbol();
-    if (isBus()) {
+    const isNr = isNRSymbol;
+    if (isBus) {
       return [0, 0, 0, 0];
     }
 
@@ -67,8 +58,8 @@ const StopPointMarker = ({
   const lineRef = useRef<PointAnnotation>();
 
   useEffect(() => {
+    console.log('hey')
     if (selectedId === stopPoint.id) {
-      console.log('Most weighted for this is ' + MostWeightedMode(stopPoint))
       setSelected(true);
     } else {
       setSelected(!selectedId);
@@ -80,18 +71,16 @@ const StopPointMarker = ({
     }, 1);
   }, [selectedId]);
 
-  useEffect(() => {}, [isSelected]);
 
   return (
-    <>
+    <View>
       <MapboxGL.PointAnnotation
         id={stopPoint.id + 'top'}
-        allowOverlap={true}
         coordinate={[stopPoint.lon, stopPoint.lat]}
         anchor={{x: 0.45, y: 1.5}}
         ref={circleRef}
         onSelected={() => {
-          updateSelected(stopPoint.id);
+          updateSelected(stopPoint.id ?? null);
         }}>
         <View
           style={{
@@ -110,10 +99,10 @@ const StopPointMarker = ({
               paddingBottom: paddingForSymbol()[2],
               paddingStart: paddingForSymbol()[3],
               backgroundColor: `${
-                isBus() ? `#EE2E24${isSelected ? 'FF' : '22'}` : 'white'
-              }`,
+                isBus ? `${isSelected ? '#EE2E24FF' : '#EE2E2422'}` : `#FFFFFF${isSelected ? 'FF' : '11'}`
+              }`
             }}>
-            {shouldDisplayStopLetter() && (
+            {shouldDisplayStopLetter && (
               <Text
                 style={{
                   width: 30,
@@ -126,12 +115,12 @@ const StopPointMarker = ({
                 {stopPoint.stopLetter}
               </Text>
             )}
-            {!shouldDisplayStopLetter() && (
+            {!shouldDisplayStopLetter && (
               <LineModeImage
                 mode={MostWeightedMode(stopPoint)}
                 width={25}
-                height={isNRSymbol() ? 15 : 25}
-                opacity={isSelected ? 1 : 0.3}
+                height={isNRSymbol ? 15 : 25}
+                opacity={isSelected ? 1 : 0.1}
               />
             )}
           </View>
@@ -140,7 +129,7 @@ const StopPointMarker = ({
 
       <MapboxGL.PointAnnotation
         id={stopPoint.id + 'bottom'}
-        allowOverlap={true}
+        allowOverlap={false}
         coordinate={[stopPoint.lon, stopPoint.lat]}
         anchor={{x: -1.5, y: 1}}
         ref={lineRef}>
@@ -153,13 +142,15 @@ const StopPointMarker = ({
             style={{
               width: 1,
               height: 30,
-              backgroundColor: `#FFFFFF${isSelected ? 'FF' : '55'}`,
+              backgroundColor: `#FFFFFF${isSelected ? 'FF' : '00'}`,
             }}></View>
         </View>
       </MapboxGL.PointAnnotation>
-    </>
+    </View>
   );
 };
 
-export {StopPointMarker};
+StopPointMarker.whyDidYouRender = true;
+
+export default memo(StopPointMarker);
 export type {StopPointMarkerProps};
